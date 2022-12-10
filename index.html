@@ -175,7 +175,8 @@ function generateSVG()
     var commandList = []
     var prevChar = '\n'
     var prevSpace = 0 
-    var prevSpace2 = 0 
+    var prevSpace2 = 0
+    var lasorOn = false  
 
     for (var i = 0; i < textData.length; i++) 
     {
@@ -198,6 +199,8 @@ function generateSVG()
 
     var LastPos = {x:0, y:0 , z:0}
     var NewPos = {x:0, y:0 , z:0}
+
+            
     for (var i = 0; i < commandList.length; i++) {
         if( commandList[i].Split[0] == 'G0' || commandList[i].Split[0] == 'G1'  )
         {
@@ -221,7 +224,16 @@ function generateSVG()
                 // console.log('adding lines?')
                 
             }
-                var linesvg = `<line x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:rgb(128,0,0);stroke-width:2" />`
+
+            var col = ''
+            if(lasorOn)
+            {
+                col = 'red'
+            }else
+            {
+                col = 'black'
+            }
+                var linesvg = `<line x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
                 console.log(linesvg)
                 var svgy = document.getElementById('svgy')
                 svgy.insertAdjacentHTML('beforeend' ,linesvg) ; 
@@ -236,10 +248,24 @@ function generateSVG()
         }
         if( commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M7'  || commandList[i].Split[0] == 'M9' )
         {
+            if(commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M7')
+            {
+                lasorOn = true
+
+            }
+            if(commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M9')
+            {
+                lasorOn = false
+
+            }
+    
             var svgy = document.getElementById('svgy')
             // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
-            svgy.insertAdjacentHTML('beforeend' , `<circle cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='red' />`) ; 
+            svgy.insertAdjacentHTML('beforeend' , `<circle cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='{laserOn}' />`) ; 
         }
+        var svgy = document.getElementById('svgy')
+            // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
+            svgy.insertAdjacentHTML('beforeend' , `<circle cx='50' cy='50' r='3' stroke='green' stroke-width='3' fill='green' />`)
     }
     // for (var i = 0; i < textData.length; i++) 
     // {
