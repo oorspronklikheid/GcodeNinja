@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>GCODE Editor</title>
+<style type="text/css" media="screen">
+    #editor { 
+        position: absolute;
+        top: 0;
+        right: -50%;
+        bottom: 0;
+        left: 50%;
+    }
+    .myMarker {
+  position:absolute;
+  background:rgba(100,200,100,0.5);
+  z-index:20
+}
+</style>
+</head>
+<body>
+<!-- <div style="display: flex;"> -->
+    <div style="width:50%;height:70%" id="editor">G0 F10000
+G0 X0 Y0 F10000
+G0 Z6
+M3 M7
+G1 X20 F1000 S0.6
+M5 M9
+G0 X24
+M3 M7
+G1 Y20
+M5 M9
+G0 X29 Y-0
+G0 Z7
+M3 M7
+G1 Y20
+M5 M9
+G0 X34 Y0
+G0 Z8
+M3 M7
+G1 Y20
+M5 M9
+G0 X39 Y-0
+G0 Z9
+M3 M7
+G1 Y20
+M5 M9
+G0 X44 Y-0
+G0 Z10
+M3 M7
+G1 Y20
+M5 M9
+G0 X0
+M3 M7
+G1 X20
+M5 M9
+G0 X0 Y15
+G0 Z9
+M3 M7
+G1 X20
+M5 M9
+G0 X0 Y10
+G0 Z8
+M3 M7
+G1 X20
+M5 M9
+G0 X0 Y5
+G0 Z7
+M3 M7
+G1 X20
+M5 M9
+G0 X47 Y22
+G0 Z8
+M3 M7
+G1 X-3 F300
+G1 Y-1.75
+G1 X-1.3333 Y-3
+G1 X47
+G1 Y22
+M5 M9
+G0 X0 Y0
+M2</div>
+
+<!-- </div> -->
+<input value='0.9' id='maxPowerInput' ><button onclick="setMaxPowahPressed()">Set max powah</button><br>
+<button onclick="downloadPRessed()">DL</button><br>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.13.2/ace.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    var editor = ace.edit("editor");
+    editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/gcode");
+
+    var Range = ace.require('ace/range').Range;
+    editor.session.addMarker(new Range(22, 0, 23, 1), "myMarker", "fullLine");
+editor.resize()
+
+
+function download(filename, text) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}
+
+function downloadPRessed()
+{
+ download("file.gcode", "text") ;
+}
+
+function getMaxPOwerFromGcode() {
+ 
+  var maxPowah = 0 ; 
+  var textData = editor.getValue().split('\n'); 
+  console.log(textData) ;
+
+  for (var i = 0; i < textData.length; i++) {
+    let position = textData[i].search("S");
+    if(position >  -1 )
+    {
+        console.log(position); 
+        console.log(textData[i]) ;
+        var tempstr = textData[i].substring( position + 1 ) + " G001" // +1 to exclude the S automatically
+        console.log(tempstr) ;
+        if(tempstr.search(" ") > 0 ) // remove extra gcodes after S param
+        {
+            tempstr = tempstr.substring(0 , tempstr.search(" "))
+            console.log(tempstr);
+        }
+        if(maxPowah < tempstr)
+        {
+            maxPowah = tempstr
+            
+        }
+
+    }
+  } 
+  return maxPowah  
+}
+function displayMaxPowah()
+{
+    // document.getElementById('maxPowerInput').value = getMaxPOwerFromGcode();
+}
+
+function setMaxPowahPressed()
+{
+    setMaxPowah(document.getElementById('maxPowerInput').value)
+}
+function setMaxPowah(newMaxPowah)
+{
+
+    var currentMaxPowah = getMaxPOwerFromGcode();
+    var factor = newMaxPowah/currentMaxPowah
+    console.log(factor)
+
+    var textData = editor.getValue().split('\n'); 
+    console.log(textData) ;
+    var output = []; 
+
+      for (var i = 0; i < textData.length; i++) {
+        let position = textData[i].search("S");
+        if(position >  -1 )
+        {
+            console.log(position); 
+            console.log(textData[i]) ;
+            var tempstr = textData[i].substring( position + 1 ) // +1 to exclude the S automatically
+            var tailStr = ""
+            console.log(tempstr) ;
+            if(tempstr.search(" ") > 0 ) // remove extra gcodes after S param
+            {
+                tailStr =  tempstr.substring(tempstr.search(" ")) ;
+                tempstr = tempstr.substring(0 , tempstr.search(" "))
+                console.log(tempstr);
+            }
+            var newPowah = Math.round(100 * (factor * tempstr)) / 100  ;
+            console.log(newPowah)
+
+            output.push(textData[i].substring( 0 , position + 1 ) + newPowah + tailStr)
+
+        }
+        else
+        {
+            output.push(textData[i])
+        }
+      } 
+      editor.setValue(output.join("\n"))
+      console.log(output) ; 
+  // return maxPowah  
+}
+displayMaxPowah();
+
+
+</script>
+</body>
+</html>
