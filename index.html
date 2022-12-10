@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>GCODE Editor</title>
+<title>GcodeNinja</title>
 <style type="text/css" media="screen">
     #editor { 
         position: absolute;
@@ -14,7 +14,13 @@
   position:absolute;
   background:rgba(100,200,100,0.5);
   z-index:20
+
 }
+
+    * { margin: 10; padding: 0;}
+
+    body, html { height:99%;  width:99%; }
+
 </style>
 </head>
 <body>
@@ -81,18 +87,24 @@ G0 X0 Y0
 M2</div>
 
 <!-- </div> -->
-<input value='0.9' id='maxPowerInput' ><button onclick="setMaxPowahPressed()">Set max powah</button><br>
-<button onclick="downloadPRessed()">DL</button><br>
+
+<div style="width:50%;height:70%">
+    <input value='0.9' id='maxPowerInput' ><button onclick="setMaxPowahPressed()">Set max powah</button>Scales all S params relatively to the maximum power in the program.<br><br>
+    <button onclick="downloadPRessed()">Download GCode</button><br>
+    <svg id='svgy' width='98%' height='100%'>
+    </svg>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.13.2/ace.js" type="text/javascript" charset="utf-8"></script>
+
 <script>
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/gcode");
 
-    var Range = ace.require('ace/range').Range;
-    editor.session.addMarker(new Range(22, 0, 23, 1), "myMarker", "fullLine");
-editor.resize()
+    // var Range = ace.require('ace/range').Range;
+    // editor.session.addMarker(new Range(22, 0, 23, 1), "myMarker", "fullLine");
+    editor.resize()
 
 
 function download(filename, text) {
@@ -151,6 +163,93 @@ function setMaxPowahPressed()
 {
     setMaxPowah(document.getElementById('maxPowerInput').value)
 }
+
+function generateSVG()
+{
+
+    var textData = editor.getValue() ; 
+    // console.log(textData)
+    var commandList = []
+    var prevChar = '\n'
+    var prevSpace = 0 
+    var prevSpace2 = 0 
+
+    for (var i = 0; i < textData.length; i++) 
+    {
+
+        var Char = textData[i] 
+
+        if((Char == 'M' || Char == 'G') && (prevChar==' ' ||prevChar=='\n') )
+        {
+            // console.log(textData.substr(prevSpace2   , prevSpace - prevSpace2))
+            var Raw = textData.substr(prevSpace2   , prevSpace - prevSpace2)
+            var Split = Raw.substr(0,Raw.length -1).split(' ')
+            commandList.push( { Raw:Raw , Split:Split } )
+            prevSpace2 = prevSpace 
+            prevSpace = i 
+        }
+
+        prevChar = textData[i]
+    }
+    // console.log(commandList);
+
+    var LastPos = {x:0, y:0 , z:0}
+    var NewPos = {x:0, y:0 , z:0}
+    for (var i = 0; i < commandList.length; i++) {
+        if( commandList[i].Split[0] == 'G0' || commandList[i].Split[0] == 'G1'  )
+        {
+            for (var j = 1; j < commandList[i].Split.length; j++) 
+            {
+                // console.log(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))
+                if(commandList[i].Split[j][0] == 'X' )
+                {
+                    NewPos.x =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+                if(commandList[i].Split[j][0] == 'Y' )
+                {
+                    NewPos.y =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+                if(commandList[i].Split[j][0] == 'Z' )
+                {
+                    NewPos.z =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+
+                // svgy.insertAdjacentHTML('beforeend' , `<circle cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='red' />`) ; 
+                // console.log('adding lines?')
+                
+            }
+                var linesvg = `<line x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:rgb(128,0,0);stroke-width:2" />`
+                console.log(linesvg)
+                var svgy = document.getElementById('svgy')
+                svgy.insertAdjacentHTML('beforeend' ,linesvg) ; 
+
+                console.log(LastPos)
+                console.log(NewPos)
+                LastPos.x = NewPos.x
+                LastPos.y = NewPos.y
+                LastPos.z = NewPos.z
+                // LastPos = NewPos;
+            
+        }
+        if( commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M7'  || commandList[i].Split[0] == 'M9' )
+        {
+            var svgy = document.getElementById('svgy')
+            // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
+            svgy.insertAdjacentHTML('beforeend' , `<circle cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='red' />`) ; 
+        }
+    }
+    // for (var i = 0; i < textData.length; i++) 
+    // {
+    //     var textString = textData[i] ; 
+
+    //     for (var j = 0; j < textString.length; j++) {
+    //         console.log(textString.charAt(j));
+    //         // textString[i]
+    //     }
+    // }
+
+}
+
 function setMaxPowah(newMaxPowah)
 {
 
@@ -194,6 +293,10 @@ function setMaxPowah(newMaxPowah)
 }
 displayMaxPowah();
 
+    var svgy = document.getElementById('svgy')
+    // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')
+
+generateSVG() ; 
 
 </script>
 </body>
