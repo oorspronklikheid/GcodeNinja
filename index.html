@@ -177,6 +177,7 @@ function generateSVG()
     var prevSpace = 0 
     var prevSpace2 = 0
     var lasorOn = false  
+    var currentLine = 1 
 
     for (var i = 0; i < textData.length; i++) 
     {
@@ -188,9 +189,13 @@ function generateSVG()
             // console.log(textData.substr(prevSpace2   , prevSpace - prevSpace2))
             var Raw = textData.substr(prevSpace2   , prevSpace - prevSpace2)
             var Split = Raw.substr(0,Raw.length -1).split(' ')
-            commandList.push( { Raw:Raw , Split:Split } )
+            commandList.push( { Raw:Raw , Split:Split , LineNumer:currentLine} )
             prevSpace2 = prevSpace 
             prevSpace = i 
+        }
+        if(Char == '\n')
+        {
+            currentLine ++ 
         }
 
         prevChar = textData[i]
@@ -219,21 +224,19 @@ function generateSVG()
                 {
                     NewPos.z =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
                 }
-
-                // svgy.insertAdjacentHTML('beforeend' , `<circle cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='red' />`) ; 
-                // console.log('adding lines?')
-                
             }
 
             var col = ''
             if(lasorOn)
             {
-                col = 'red'
+                col = 'rgb(255,0,0)'
             }else
             {
                 col = 'black'
             }
-                var linesvg = `<line x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
+
+                var linenumber = commandList[i].LineNumer
+                var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
                 console.log(linesvg)
                 var svgy = document.getElementById('svgy')
                 svgy.insertAdjacentHTML('beforeend' ,linesvg) ; 
@@ -261,21 +264,14 @@ function generateSVG()
     
             var svgy = document.getElementById('svgy')
             // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
-            svgy.insertAdjacentHTML('beforeend' , `<circle cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='{laserOn}' />`) ; 
+            svgy.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='{laserOn}' />`) ; 
         }
+        //origin
         var svgy = document.getElementById('svgy')
             // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
             svgy.insertAdjacentHTML('beforeend' , `<circle cx='50' cy='50' r='3' stroke='green' stroke-width='3' fill='green' />`)
     }
-    // for (var i = 0; i < textData.length; i++) 
-    // {
-    //     var textString = textData[i] ; 
-
-    //     for (var j = 0; j < textString.length; j++) {
-    //         console.log(textString.charAt(j));
-    //         // textString[i]
-    //     }
-    // }
+    
 
 }
 
@@ -336,7 +332,16 @@ function refreshsvg()
     generateSVG() ; 
 
 }
-
+function onclickSVGElement(Element , LineNumber)
+{
+ console.log(Element)
+ console.log(LineNumber)   
+    if (LineNumber > 0 )
+    {
+        var Range = ace.require('ace/range').Range;
+        editor.session.addMarker(new Range(LineNumber, 0, LineNumber, 1), "myMarker", "fullLine");
+    }
+}
 
 </script>
 </body>
