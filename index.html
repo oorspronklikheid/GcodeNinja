@@ -90,10 +90,17 @@ M2</div>
 
 <div style="width:50%;height:70%">
     <svg id='svgy' width='98%' height='100%'>
+        <g id='gscale' transform="scale(1.25)">
+            <!-- <g transform="scale(1.25)"> -->
+                <g id=elements></g>
+            <!-- </g> -->
+        </g>
     </svg>
     <input value='0.9' id='maxPowerInput' ><button onclick="setMaxPowahPressed()">Set max powah</button>Scales all S params relatively to the maximum power in the program.<br><br>
     <button onclick="downloadPRessed()">Download GCode</button><br>
     <button onclick="refreshsvg()">Refresh SVG View</button><br>
+    <button onclick="exportURL()">Save to URL</button><br>
+    
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.13.2/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -167,12 +174,13 @@ function setMaxPowahPressed()
     setMaxPowah(document.getElementById('maxPowerInput').value)
 }
 
+var commandList = []
 function generateSVG()
 {
 
     var textData = editor.getValue() ; 
     // console.log(textData)
-    var commandList = []
+    commandList = []
     var prevChar = '\n'
     var prevSpace = 0 
     var prevSpace2 = 0
@@ -237,12 +245,13 @@ function generateSVG()
 
                 var linenumber = commandList[i].LineNumer
                 var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
-                console.log(linesvg)
-                var svgy = document.getElementById('svgy')
-                svgy.insertAdjacentHTML('beforeend' ,linesvg) ; 
+                // console.log(linesvg)
+                var elements = document.getElementById('elements')
+                elements.insertAdjacentHTML('beforeend' ,linesvg) ; 
+                commandList[i]['svgElement']  = elements.lastChild
 
-                console.log(LastPos)
-                console.log(NewPos)
+                // console.log(LastPos)
+                // console.log(NewPos)
                 LastPos.x = NewPos.x
                 LastPos.y = NewPos.y
                 LastPos.z = NewPos.z
@@ -262,14 +271,14 @@ function generateSVG()
 
             }
     
-            var svgy = document.getElementById('svgy')
-            // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
-            svgy.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='{laserOn}' />`) ; 
+            var elements = document.getElementById('elements')
+            // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
+            elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='{laserOn}' />`) ; 
         }
         //origin
-        var svgy = document.getElementById('svgy')
-            // svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
-            svgy.insertAdjacentHTML('beforeend' , `<circle cx='50' cy='50' r='3' stroke='green' stroke-width='3' fill='green' />`)
+        var elements = document.getElementById('elements')
+            // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
+            elements.insertAdjacentHTML('beforeend' , `<circle cx='50' cy='50' r='3' stroke='green' stroke-width='3' fill='green' />`)
     }
     
 
@@ -318,31 +327,86 @@ function setMaxPowah(newMaxPowah)
 }
 displayMaxPowah();
 
-    var svgy = document.getElementById('svgy')
-    svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')
+    var elements = document.getElementById('elements')
+    elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')
 
 generateSVG() ; 
 
 
 function refreshsvg()
 {
-    var svgy = document.getElementById('svgy')
-    svgy.innerHTML = '' ; 
-    svgy.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')    
+    var elements = document.getElementById('elements')
+    elements.innerHTML = '' ; 
+    elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')    
     generateSVG() ; 
 
 }
 function onclickSVGElement(Element , LineNumber)
 {
- console.log(Element)
- console.log(LineNumber)   
+    console.log(editor.session)
+    const prevMarkers = editor.session.getMarkers();
+    if (prevMarkers) {
+        const prevMarkersArr = Object.keys(prevMarkers);
+        for (let item of prevMarkersArr) {
+            editor.session.removeMarker(prevMarkers[item].id);
+      }
+    }
+
     if (LineNumber > 0 )
     {
         var Range = ace.require('ace/range').Range;
         editor.session.addMarker(new Range(LineNumber, 0, LineNumber, 1), "myMarker", "fullLine");
     }
 }
+scale = 1 
+svgy.addEventListener('wheel', (e) => {
 
+    gscale = document.getElementById('gscale')
+    if(e.wheelDeltaY > 0 )
+        scale = scale * (1.05)
+    if(e.wheelDeltaY < 0 )
+        scale = scale / (1.05)
+    gscale.setAttribute('transform',`scale(${scale})`);
+
+
+  // lastKnownScrollPosition = window.scrollY;
+
+  // if (!ticking) {
+  //   window.requestAnimationFrame(() => {
+  //     doSomething(lastKnownScrollPosition);
+  //     ticking = false;
+  //   });
+
+  //   ticking = true;
+  // }
+});
+
+function loadFromURL()
+{
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+
+    console.log(urlParams);
+    if(urlParams.get('GCODE'))
+     editor.setValue(urlParams.get('GCODE'));
+}
+loadFromURL();
+
+function exportURL() {
+
+    // const queryString = window.location.search;
+    console.log(window.location.href)
+    var url = new URL(window.location.href) ; 
+    url.searchParams.append('GCODE' , editor.getValue())
+    url.searchParams.set('GCODE' , editor.getValue())
+    console.log(url)
+    window.location.href = url.href
+    // const urlParams = new URLSearchParams(queryString);
+
+    // console.log(urlParams);
+    // urlParams.set('GCODE2' , editor.getValue())
+}
+//127.0.0.9/index.html?GCODE=test
 </script>
 </body>
 </html>
