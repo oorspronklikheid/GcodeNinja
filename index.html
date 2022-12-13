@@ -25,63 +25,73 @@
 </head>
 <body>
 <!-- <div style="display: flex;"> -->
-    <div style="width:50%;height:70%" id="editor">G0 F10000
-G0 X0 Y0 F10000
-G0 Z6
+    <div style="width:50%;height:70%" id="editor">M28
+G0 X0 Y0 F10000 S0.8
 M3 M7
-G1 X20 F1000 S0.6
+G1 X100 Y0
+G1 X100 Y50
+G1 X00 Y50
+G1 X0 Y0
 M5 M9
-G0 X24
+G0 X23.3 Y24.5 S0.3
 M3 M7
-G1 Y20
+G0 X36.6 Y1.6
+G0 X79.8 Y26.5
+G0 X78.6 Y28.5
+G0 X37.5 Y4.7
+G0 X25.3 Y25.7
+G0 X23.3 Y24.5
 M5 M9
-G0 X29 Y-0
-G0 Z7
+G0 X27.2 Y23.5
 M3 M7
-G1 Y20
+G0 X33.5 Y23.5
+G0 X33.5 Y30.3
+G0 X47.6 Y30.3
+G0 X47.6 Y43.8
+G0 X40.8 Y43.8
+G0 X40.8 Y36.8
+G0 X33.5 Y36.8
+G0 X33.5 Y43.8
+G0 X27.2 Y43.8
+G0 X27.2 Y23.5
 M5 M9
-G0 X34 Y0
-G0 Z8
+G0 X34.5 Y29.3
 M3 M7
-G1 Y20
+G0 X34.5 Y15.9
+G0 X41.3 Y15.9
+G0 X41.3 Y22.9
+G0 X48.6 Y22.9
+G0 X48.6 Y15.8
+G0 X54.9 Y15.8
+G0 X54.9 Y36.2
+G0 X48.6 Y36.2
+G0 X48.6 Y29.3
+G0 X34.5 Y29.3
 M5 M9
-G0 X39 Y-0
-G0 Z9
+G0 X55.9 Y23.5
 M3 M7
-G1 Y20
+G0 X62.2 Y23.5
+G0 X62.2 Y30.3
+G0 X76.3 Y30.3
+G0 X76.3 Y43.8
+G0 X69.5 Y43.8
+G0 X69.5 Y36.8
+G0 X62.2 Y36.8
+G0 X62.2 Y43.8
+G0 X55.9 Y43.8
+G0 X55.9 Y23.5
 M5 M9
-G0 X44 Y-0
-G0 Z10
+G0 X7 Y4
 M3 M7
-G1 Y20
-M5 M9
-G0 X0
-M3 M7
-G1 X20
-M5 M9
-G0 X0 Y15
-G0 Z9
-M3 M7
-G1 X20
-M5 M9
-G0 X0 Y10
-G0 Z8
-M3 M7
-G1 X20
-M5 M9
-G0 X0 Y5
-G0 Z7
-M3 M7
-G1 X20
-M5 M9
-G0 X47 Y22
-G0 Z8
-M3 M7
-G1 X-3 F300
-G1 Y-1.75
-G1 X-1.3333 Y-3
-G1 X47
-G1 Y22
+G0 X10. Y6.2
+G0 X10.3 Y6.3
+G0 X8.9 Y9.7
+G0 X5.2 Y9.7
+G0 X4 Y6.2
+G0 X7 Y4
+
+
+
 M5 M9
 G0 X0 Y0
 M2</div>
@@ -100,7 +110,13 @@ M2</div>
     <button onclick="downloadPRessed()">Download GCode</button><br>
     <button onclick="refreshsvg()">Refresh SVG View</button><br>
     <button onclick="exportURL()">Save to URL</button><br>
-    
+    <button onclick="saveToServer()">Save to Server</button><br>
+    <details><summary>TODO</summary>
+            Panning of svg<br>
+            Grid<br>
+            Warn on reload<br>
+            Scale/translate in gcode<br>
+    </details>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.13.2/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -185,7 +201,8 @@ function generateSVG()
     var prevSpace = 0 
     var prevSpace2 = 0
     var lasorOn = false  
-    var currentLine = 1 
+    var currentLine = 0 
+    var LastPower = 0 
 
     for (var i = 0; i < textData.length; i++) 
     {
@@ -232,12 +249,21 @@ function generateSVG()
                 {
                     NewPos.z =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
                 }
+                if(commandList[i].Split[j][0] == 'S' )
+                {
+                    LastPower =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+
+
             }
 
             var col = ''
+            var Opacity = 100 
             if(lasorOn)
             {
-                col = 'rgb(255,0,0)'
+                Opacity =  LastPower
+                col = `rgba(255,0,0,${Opacity})`
+                console.log(col)
             }else
             {
                 col = 'black'
@@ -245,6 +271,7 @@ function generateSVG()
 
                 var linenumber = commandList[i].LineNumer
                 var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
+                //stroke-opacity:${Opacity}"
                 // console.log(linesvg)
                 var elements = document.getElementById('elements')
                 elements.insertAdjacentHTML('beforeend' ,linesvg) ; 
@@ -406,6 +433,28 @@ function exportURL() {
     // console.log(urlParams);
     // urlParams.set('GCODE2' , editor.getValue())
 }
+
+function saveToServer() {
+
+var url = new URL(window.location.href) ; 
+// console.log(url)
+ var requesturl = url.origin + '/upload.php'
+ console.log(requesturl)
+ fetch(requesturl, {
+    method: 'POST',
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ GCODE:editor.getValue()})
+})
+.then(response => response.json())
+.then(data => console.log(data))
+}
+
+// window.onbeforeunload =exportURL;
+
+
 //127.0.0.9/index.html?GCODE=test
 </script>
 </body>
