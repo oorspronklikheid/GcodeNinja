@@ -26,60 +26,8 @@
 <body>
 <!-- <div style="display: flex;"> -->
     <div style="width:50%;height:70%" id="editor">M28
-G0 X0 Y0 F10000 S0.8
-M3 M7
-G1 X100 Y0
-G1 X100 Y50
-G1 X00 Y50
-G1 X0 Y0
-M5 M9
-G0 X23.3 Y24.5 S0.3
-M3 M7
-G0 X36.6 Y1.6
-G0 X79.8 Y26.5
-G0 X78.6 Y28.5
-G0 X37.5 Y4.7
-G0 X25.3 Y25.7
-G0 X23.3 Y24.5
-M5 M9
-G0 X27.2 Y23.5
-M3 M7
-G0 X33.5 Y23.5
-G0 X33.5 Y30.3
-G0 X47.6 Y30.3
-G0 X47.6 Y43.8
-G0 X40.8 Y43.8
-G0 X40.8 Y36.8
-G0 X33.5 Y36.8
-G0 X33.5 Y43.8
-G0 X27.2 Y43.8
-G0 X27.2 Y23.5
-M5 M9
-G0 X34.5 Y29.3
-M3 M7
-G0 X34.5 Y15.9
-G0 X41.3 Y15.9
-G0 X41.3 Y22.9
-G0 X48.6 Y22.9
-G0 X48.6 Y15.8
-G0 X54.9 Y15.8
-G0 X54.9 Y36.2
-G0 X48.6 Y36.2
-G0 X48.6 Y29.3
-G0 X34.5 Y29.3
-M5 M9
-G0 X55.9 Y23.5
-M3 M7
-G0 X62.2 Y23.5
-G0 X62.2 Y30.3
-G0 X76.3 Y30.3
-G0 X76.3 Y43.8
-G0 X69.5 Y43.8
-G0 X69.5 Y36.8
-G0 X62.2 Y36.8
-G0 X62.2 Y43.8
-G0 X55.9 Y43.8
-G0 X55.9 Y23.5
+M28
+G0 X0 Y0 F10000 S1.0
 M5 M9
 G0 X7 Y4
 M3 M7
@@ -90,7 +38,10 @@ G0 X5.2 Y9.7
 G0 X4 Y6.2
 G0 X7 Y4
 
-
+M5 M9
+G0 X10 Y20
+M3 M7
+G2 X10 Y30  J5
 
 M5 M9
 G0 X0 Y0
@@ -116,6 +67,9 @@ M2</div>
             Grid<br>
             Warn on reload<br>
             Scale/translate in gcode<br>
+            Implicit parameters support , ie G0 X100<br>
+            G2/G3 Support <br>
+            warning on missing laser shut off<br>
     </details>
 </div>
 
@@ -201,39 +155,123 @@ function generateSVG()
     var prevSpace = 0 
     var prevSpace2 = 0
     var lasorOn = false  
-    var currentLine = 0 
+    var currentLine = -1 
     var LastPower = 0 
+    var buffer= '' 
 
     for (var i = 0; i < textData.length; i++) 
     {
 
         var Char = textData[i] 
-
-        if((Char == 'M' || Char == 'G') && (prevChar==' ' ||prevChar=='\n') )
-        {
-            // console.log(textData.substr(prevSpace2   , prevSpace - prevSpace2))
-            var Raw = textData.substr(prevSpace2   , prevSpace - prevSpace2)
-            var Split = Raw.substr(0,Raw.length -1).split(' ')
-            commandList.push( { Raw:Raw , Split:Split , LineNumer:currentLine} )
-            prevSpace2 = prevSpace 
-            prevSpace = i 
-        }
+        // if(i<20 && Char != '\n')
+            // console.log(Char)
         if(Char == '\n')
         {
-            currentLine ++ 
+            // console.log('\\n')
+            currentLine ++ ;
         }
+
+        if((Char == 'M' || Char == 'G')  )
+        {
+            // console.log('adding at ' +i)
+            
+            // var Raw = textData.substr(prevSpace2   , prevSpace - prevSpace2)
+            var Split = buffer.substr(0,buffer.length -1).split(' ')
+            commandList.push( { Raw:buffer , Split:Split , LineNumer:currentLine , Charnum : i } )
+            prevSpace2 = prevSpace 
+            prevSpace = i 
+            buffer = '' ;
+        }
+        buffer += Char
+        // if((Char == 'M' || Char == 'G') && (prevChar==' ' ||prevChar=='\n') )
+        // {
+        //     console.log('adding at ' +i)
+        //     // console.log(textData.substr(prevSpace2   , prevSpace - prevSpace2))
+        //     var Raw = textData.substr(prevSpace2   , prevSpace - prevSpace2)
+        //     var Split = Raw.substr(0,Raw.length -1).split(' ')
+        //     commandList.push( { Raw:Raw , Split:Split , LineNumer:currentLine , Charnum : i } )
+        //     prevSpace2 = prevSpace 
+        //     prevSpace = i 
+        // }
 
         prevChar = textData[i]
     }
     // console.log(commandList);
 
-    var LastPos = {x:0, y:0 , z:0}
-    var NewPos = {x:0, y:0 , z:0}
+    var LastPos = {x:0, y:0 , z:0 , i:0 , j:0 }
+    var NewPos =  {x:0, y:0 , z:0 , i:0 , j:0 }
 
             
     for (var i = 0; i < commandList.length; i++) {
-        if( commandList[i].Split[0] == 'G0' || commandList[i].Split[0] == 'G1'  )
+
+
+        if( commandList[i].Split[0] == 'G2' || commandList[i].Split[0] == 'G3'  )
         {
+            for (var j = 1; j < commandList[i].Split.length; j++) 
+            {
+                // console.log(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))
+                if(commandList[i].Split[j][0] == 'X' )
+                {
+                    NewPos.x =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+                if(commandList[i].Split[j][0] == 'Y' )
+                {
+                    NewPos.y =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+                if(commandList[i].Split[j][0] == 'Z' )
+                {
+                    NewPos.z =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+                if(commandList[i].Split[j][0] == 'I' )
+                {
+                    NewPos.i =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+                if(commandList[i].Split[j][0] == 'J' )
+                {
+                    NewPos.j =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+                if(commandList[i].Split[j][0] == 'S' )
+                {
+                    LastPower =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
+                }
+
+            }
+            var col = ''
+            var Opacity = 100 
+            if(lasorOn)
+            {
+                Opacity =  LastPower
+                col = `rgba(0,255,0,${Opacity})`
+                console.log(col)
+            }else
+            {
+                col = 'black'
+            }
+                var clockwise = 1 
+                if(commandList[i].Split[0] == 'G3')
+                    clockwise = 0 
+                var linenumber = commandList[i].LineNumer
+                var linesvg = `<path  onclick=onclickSVGElement(this,${linenumber}) d="M ${LastPos.x * 5 + 50} ${LastPos.y * 5 + 50} A ${NewPos.i * 5 } ${NewPos.j * 5 } ${0} ${0} ${clockwise}  ${NewPos.x * 5 + 50} ${NewPos.y * 5 + 50} " style="stroke:${col};stroke-width:2;fill:rgba(255,255,255,0)" />`
+                // var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
+                //stroke-opacity:${Opacity}"
+                // console.log(linesvg)
+                var elements = document.getElementById('elements')
+                elements.insertAdjacentHTML('beforeend' ,linesvg) ; 
+                commandList[i]['svgElement']  = elements.lastChild
+
+                // console.log(LastPos)
+                // console.log(NewPos)
+                LastPos.x = NewPos.x
+                LastPos.y = NewPos.y
+                LastPos.z = NewPos.z
+                // LastPos = NewPos;
+
+        }       
+        if( commandList[i].Split[0] == 'G0' || commandList[i].Split[0] == 'G1' )
+        {
+            NewPos.x = LastPos.x
+            NewPos.y = LastPos.y
+            NewPos.z = LastPos.z
             for (var j = 1; j < commandList[i].Split.length; j++) 
             {
                 // console.log(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))
@@ -253,7 +291,6 @@ function generateSVG()
                 {
                     LastPower =   commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
                 }
-
 
             }
 
@@ -307,7 +344,7 @@ function generateSVG()
             // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
             elements.insertAdjacentHTML('beforeend' , `<circle cx='50' cy='50' r='3' stroke='green' stroke-width='3' fill='green' />`)
     }
-    
+    console.log(commandList)
 
 }
 
@@ -450,6 +487,7 @@ var url = new URL(window.location.href) ;
 })
 .then(response => response.json())
 .then(data => console.log(data))
+.catch(error => console.error('Error:', error));
 }
 
 // window.onbeforeunload =exportURL;
