@@ -67,9 +67,11 @@ M2</div>
             Grid<br>
             Warn on reload<br>
             Scale/translate in gcode<br>
-            Implicit parameters support , ie G0 X100<br>
-            G2/G3 Support <br>
             warning on missing laser shut off<br>
+            Visualise cutting direction <br>
+            minimize gcode ie remove redundant spindle/coolant command , remove parameters that does not change from previous<br>
+            <s>Implicit parameters support , ie G0 X100</s><br>
+            <s>G2/G3 Support</s><br>
     </details>
 </div>
 
@@ -241,18 +243,20 @@ function generateSVG()
             if(lasorOn)
             {
                 Opacity =  LastPower
-                col = `rgba(0,255,0,${Opacity})`
+                // col = `rgba(0,255,0,${Opacity})`
+                col = `rgba(255,0,0,${Opacity})`
                 console.log(col)
             }else
             {
-                col = 'black'
+                col = `rgba(0,0,0,0.2)`
             }
                 var clockwise = 1 
-                if(commandList[i].Split[0] == 'G3')
+                if(commandList[i].Split[0] == 'G2')
                     clockwise = 0 
                 var linenumber = commandList[i].LineNumer
-                var linesvg = `<path  onclick=onclickSVGElement(this,${linenumber}) d="M ${LastPos.x * 5 + 50} ${LastPos.y * 5 + 50} A ${NewPos.i * 5 } ${NewPos.j * 5 } ${0} ${0} ${clockwise}  ${NewPos.x * 5 + 50} ${NewPos.y * 5 + 50} " style="stroke:${col};stroke-width:2;fill:rgba(255,255,255,0)" />`
-                // var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
+                var radius = Math.sqrt(NewPos.i*NewPos.i  + NewPos.j*NewPos.j)
+                var linesvg = `<path  onclick=onclickSVGElement(this,${linenumber}) d="M ${LastPos.x * 5 + 50} ${LastPos.y * 5 + 50} A ${radius * 5 } ${radius * 5 } ${0} ${0} ${clockwise}  ${NewPos.x * 5 + 50} ${NewPos.y * 5 + 50} " style="stroke:${col};stroke-width:1;fill:rgba(255,255,255,0)" />`
+                // var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:1" />`
                 //stroke-opacity:${Opacity}"
                 // console.log(linesvg)
                 var elements = document.getElementById('elements')
@@ -303,11 +307,11 @@ function generateSVG()
                 console.log(col)
             }else
             {
-                col = 'black'
+                col = `rgba(0,0,0,0.2)`
             }
 
                 var linenumber = commandList[i].LineNumer
-                var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:2" />`
+                var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:1" />`
                 //stroke-opacity:${Opacity}"
                 // console.log(linesvg)
                 var elements = document.getElementById('elements')
@@ -337,7 +341,7 @@ function generateSVG()
     
             var elements = document.getElementById('elements')
             // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
-            elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='2' stroke='blue' stroke-width='3' fill='{laserOn}' />`) ; 
+            elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='1' stroke='blue' stroke-width='1.5' fill='{laserOn}' />`) ; 
         }
         //origin
         var elements = document.getElementById('elements')
@@ -453,6 +457,17 @@ function loadFromURL()
     console.log(urlParams);
     if(urlParams.get('GCODE'))
      editor.setValue(urlParams.get('GCODE'));
+
+    if(urlParams.get('GCODEPATH'))
+    {
+        console.log('getting from server')
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open( "GET",  '/get.php?File=' + urlParams.get('GCODEPATH'), false ); // false for synchronous request
+        xmlHttp.send( null );
+        editor.setValue(xmlHttp.responseText)
+        // return xmlHttp.responseText
+
+    }
 }
 loadFromURL();
 
@@ -486,8 +501,19 @@ var url = new URL(window.location.href) ;
     body: JSON.stringify({ GCODE:editor.getValue()})
 })
 .then(response => response.json())
-.then(data => console.log(data))
+.then(data => updateURL(data))
 .catch(error => console.error('Error:', error));
+}
+
+function updateURL(data)
+{
+
+    console.log(window.location.href)
+    var url = new URL(window.location.href) ; 
+    url.searchParams.append('GCODEPATH' , data)
+    url.searchParams.set('GCODEPATH' , data)
+    console.log(url)
+    window.location.href = url.href
 }
 
 // window.onbeforeunload =exportURL;

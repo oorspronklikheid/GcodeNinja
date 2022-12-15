@@ -5,9 +5,15 @@
 // $_POST['test'] = 'what' ;
 $raw_data = file_get_contents("php://input");
 
-echo $raw_data;
+$data = json_decode($raw_data);
 
+// var_dump($data);
+$gcodedata =  $data->GCODE;
+$filename = rand(0,9999);
 
-// $myfile = fopen("testfile.txt", "w") 
+file_put_contents("uploads/$filename.gcode",$gcodedata);
+
+echo json_encode("$filename"); 
+// echo json_encode("{\"loc\":/$filename.gcode}"); 
 
  ?>
