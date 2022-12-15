@@ -456,7 +456,9 @@ function loadFromURL()
 
     console.log(urlParams);
     if(urlParams.get('GCODE'))
+    {
      editor.setValue(urlParams.get('GCODE'));
+    }
 
     if(urlParams.get('GCODEPATH'))
     {
@@ -476,6 +478,7 @@ function exportURL() {
     // const queryString = window.location.search;
     console.log(window.location.href)
     var url = new URL(window.location.href) ; 
+     url.searchParams.delete('GCODEPATH') 
     url.searchParams.append('GCODE' , editor.getValue())
     url.searchParams.set('GCODE' , editor.getValue())
     console.log(url)
@@ -509,7 +512,8 @@ function updateURL(data)
 {
 
     console.log(window.location.href)
-    var url = new URL(window.location.href) ; 
+    var url = new URL(window.location.href) ;
+    url.searchParams.delete('GCODE') 
     url.searchParams.append('GCODEPATH' , data)
     url.searchParams.set('GCODEPATH' , data)
     console.log(url)
