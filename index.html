@@ -462,7 +462,7 @@ function loadFromURL()
     {
         console.log('getting from server')
         var xmlHttp = new XMLHttpRequest();
-        xmlHttp.open( "GET",  '/get.php?File=' + urlParams.get('GCODEPATH'), false ); // false for synchronous request
+        xmlHttp.open( "GET",  './get.php?File=' + urlParams.get('GCODEPATH'), false ); // false for synchronous request
         xmlHttp.send( null );
         editor.setValue(xmlHttp.responseText)
         // return xmlHttp.responseText
@@ -489,8 +489,8 @@ function exportURL() {
 function saveToServer() {
 
 var url = new URL(window.location.href) ; 
-// console.log(url)
- var requesturl = url.origin + '/upload.php'
+console.log(url)
+ var requesturl = './upload.php'
  console.log(requesturl)
  fetch(requesturl, {
     method: 'POST',

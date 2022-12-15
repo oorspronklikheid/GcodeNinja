@@ -11,7 +11,7 @@ $data = json_decode($raw_data);
 $gcodedata =  $data->GCODE;
 $filename = rand(0,9999);
 
-file_put_contents("uploads/$filename.gcode",$gcodedata);
+file_put_contents("./uploads/$filename.gcode",$gcodedata);
 
 echo json_encode("$filename"); 
 // echo json_encode("{\"loc\":/$filename.gcode}"); 
