@@ -5,14 +5,14 @@
 <style type="text/css" media="screen">
     #editor { 
         position: absolute;
-        top: 0;
+        top: 120px;
         right: -50%;
         bottom: 0;
         left: 50%;
     }
     .myMarker {
   position:absolute;
-  background:rgba(100,200,100,0.5);
+  background:rgba(100,200,100,0.2);
   z-index:20
 
 }
@@ -22,9 +22,15 @@
     body, html { height:99%;  width:99%; }
 
 </style>
+<link rel="icon" type="image/x-icon" href="./favicon.png">
 </head>
 <body>
 <!-- <div style="display: flex;"> -->
+<div style="width:100%">
+    <h1><img src="./favicon.png" height="60px" > Code Ninja
+</div>
+
+    
     <div style="width:50%;height:70%" id="editor">M28
 M28
 G0 X0 Y0 F10000 S1.0
@@ -32,7 +38,7 @@ M5 M9
 G0 X7 Y4
 M3 M7
 G0 X10. Y6.2
-G0 X10.3 Y6.3
+
 G0 X8.9 Y9.7
 G0 X5.2 Y9.7
 G0 X4 Y6.2
@@ -70,6 +76,7 @@ M2</div>
             warning on missing laser shut off<br>
             Visualise cutting direction <br>
             minimize gcode ie remove redundant spindle/coolant command , remove parameters that does not change from previous<br>
+            <s> implement uploading</s><br>
             <s>Implicit parameters support , ie G0 X100</s><br>
             <s>G2/G3 Support</s><br>
     </details>
@@ -157,7 +164,8 @@ function generateSVG()
     var prevSpace = 0 
     var prevSpace2 = 0
     var lasorOn = false  
-    var currentLine = -1 
+    var currentLine = 0 
+    var tempcurrentLine = 0
     var LastPower = 0 
     var buffer= '' 
 
@@ -170,7 +178,8 @@ function generateSVG()
         if(Char == '\n')
         {
             // console.log('\\n')
-            currentLine ++ ;
+            tempcurrentLine ++ ;
+            // currentLine ++ ;
         }
 
         if((Char == 'M' || Char == 'G')  )
@@ -183,6 +192,8 @@ function generateSVG()
             prevSpace2 = prevSpace 
             prevSpace = i 
             buffer = '' ;
+            currentLine +=tempcurrentLine ;
+            tempcurrentLine = 0 ;
         }
         buffer += Char
         // if((Char == 'M' || Char == 'G') && (prevChar==' ' ||prevChar=='\n') )
