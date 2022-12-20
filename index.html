@@ -57,7 +57,7 @@ M2</div>
 
 <div style="width:50%;height:70%">
     <svg id='svgy' width='98%' height='100%'>
-        <g id='gscale' transform="scale(1.25)">
+        <g id='gscale' transform="scale(1)">
             <!-- <g transform="scale(1.25)"> -->
                 <g id=elements></g>
             <!-- </g> -->
@@ -422,7 +422,8 @@ function refreshsvg()
 }
 function onclickSVGElement(Element , LineNumber)
 {
-    console.log(editor.session)
+    console.log('onclickSVGElement')
+    // console.log(editor.session)
     const prevMarkers = editor.session.getMarkers();
     if (prevMarkers) {
         const prevMarkersArr = Object.keys(prevMarkers);
@@ -438,6 +439,82 @@ function onclickSVGElement(Element , LineNumber)
     }
 }
 scale = 1 
+
+var pt = svgy.createSVGPoint();  // Created once for document
+
+
+var ismousdown = false
+var mousestartpos = {x:0 , y:0} ;
+var boundingbox = false  ; 
+
+svgy.addEventListener('mousedown', (e) => {
+    ismousdown = true 
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    var cursorpt = pt.matrixTransform(svgy.getScreenCTM().inverse());
+    // console.log("(" + cursorpt.x + ", " + cursorpt.y + ")");
+    // console.log(e.clientX +',' + e.clientY);
+
+    var elements = document.getElementById('elements')
+            
+    if(boundingbox == false){
+
+    elements.insertAdjacentHTML('beforeend' , `<rect x="${cursorpt.x/scale }" y="${cursorpt.y/scale }" width="0" height="0" style="fill:rgba(0,0,255,0.1);stroke-width:1;stroke:rgb(0,0,0)" />`) ; 
+        boundingbox = elements.lastChild;
+        mousestartpos.x =  cursorpt.x/scale
+        mousestartpos.y =  cursorpt.y/scale
+    }else{
+        mousestartpos.x =  cursorpt.x/scale
+        mousestartpos.y =  cursorpt.y/scale
+        boundingbox.setAttribute('x' ,  cursorpt.x/scale )  ;
+        boundingbox.setAttribute('y' ,  cursorpt.y/scale )  ;
+    }
+    
+});
+
+svgy.addEventListener('mousemove', (e) => {
+    
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    var cursorpt = pt.matrixTransform(svgy.getScreenCTM().inverse());
+    // console.log("(" + cursorpt.x + ", " + cursorpt.y + ")");
+    // console.log(e.clientX +',' + e.clientY);
+
+    var elements = document.getElementById('elements')
+    if(ismousdown)
+    {
+    // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='red' stroke-width='1.5' fill='{laserOn}' />`) ; 
+        if(boundingbox != false)
+        {
+        var tempx = Math.min(mousestartpos.x , cursorpt.x/scale) ; 
+        var tempy = Math.min(mousestartpos.y , cursorpt.y/scale) ; 
+        boundingbox.setAttribute('x' ,  tempx)  ;
+        boundingbox.setAttribute('y' ,  tempy)  ;
+        boundingbox.setAttribute('width' , Math.abs(mousestartpos.x -  cursorpt.x/scale ))  ;
+        boundingbox.setAttribute('height' ,Math.abs(mousestartpos.y -   cursorpt.y/scale ))  ;
+
+        }
+
+    }
+});
+
+svgy.addEventListener('mouseup', (e) => {
+    // console.log(e);
+    ismousdown = false 
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    var cursorpt = pt.matrixTransform(svgy.getScreenCTM().inverse());
+    // console.log("(" + cursorpt.x + ", " + cursorpt.y + ")");
+    // console.log(e.clientX +',' + e.clientY);
+
+    var elements = document.getElementById('elements')
+    elements.removeChild(boundingbox);
+    boundingbox = false
+
+            
+    // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='green' stroke-width='1.5' fill='{laserOn}' />`) ; 
+});
+
 svgy.addEventListener('wheel', (e) => {
 
     gscale = document.getElementById('gscale')
