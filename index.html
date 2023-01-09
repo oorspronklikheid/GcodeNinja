@@ -339,12 +339,12 @@ function generateSVG()
         }
         if( commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M7'  || commandList[i].Split[0] == 'M9' )
         {
-            if(commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M7')
+            if(commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M7')
             {
                 lasorOn = true
 
             }
-            if(commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M9')
+            if(commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M9')
             {
                 lasorOn = false
 
