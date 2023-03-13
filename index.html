@@ -64,6 +64,12 @@ M2</div>
         </g>
     </svg>
     <input value='0.9' id='maxPowerInput' ><button onclick="setMaxPowahPressed()">Set max powah</button>Scales all S params relatively to the maximum power in the program.<br><br>
+
+    <button onclick="moveselected('left' , 5)"><</button>
+    <button onclick="moveselected('up' , 5)">/\</button>
+    <button onclick="moveselected('down' , 5)">\/</button>
+    <button onclick="moveselected('right' , 5)">></button><br>
+
     <button onclick="downloadPRessed()">Download GCode</button><br>
     <button onclick="refreshsvg()">Refresh SVG View</button><br>
     <button onclick="exportURL()">Save to URL</button><br>
@@ -76,6 +82,7 @@ M2</div>
             warning on missing laser shut off<br>
             Visualise cutting direction <br>
             minimize gcode ie remove redundant spindle/coolant command , remove parameters that does not change from previous<br>
+            ui move of gcode
             <s> implement uploading</s><br>
             <s>Implicit parameters support , ie G0 X100</s><br>
             <s>G2/G3 Support</s><br>
@@ -89,12 +96,12 @@ M2</div>
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/gcode");
 
-    // var Range = ace.require('ace/range').Range;
+    var Range = ace.require('ace/range').Range;
     // editor.session.addMarker(new Range(22, 0, 23, 1), "myMarker", "fullLine");
     editor.resize()
-editor.getSession().on('change', function() {
-  refreshsvg();
-})
+    editor.getSession().on('change', function() {
+      refreshsvg();
+    })
 
 function download(filename, text) {
   var element = document.createElement('a');
@@ -154,22 +161,47 @@ function setMaxPowahPressed()
 }
 
 var commandList = []
-function generateSVG()
+var selectedList = []
+
+
+
+
+function CommandListTotext()
 {
 
-    var textData = editor.getValue() ; 
-    // console.log(textData)
-    commandList = []
+    var total = '' 
+    for (var i = 0; i < commandList.length; i++) {
+        var newRaw = commandList[i].Template
+        console.log(commandList[i].Raw)
+        for (var j = commandList[i].Split.length - 1; j >= 0; j--) {
+            // commandList[i].Split[j]
+        // }
+        // for (var j = 0; j < commandList[i].Split.length; j++) {
+            console.log('/' + j + '/')
+            newRaw = newRaw.replace( 'template' + j, commandList[i].Split[j])
+            // console.log( commandList[i].Split[j])
+        }
+        commandList[i].Raw = newRaw
+        total += commandList[i].Raw 
+    }
+
+      editor.setValue(total)
+      // generateSVG()
+}
+
+
+function textToCommandList()
+{
+   var textData = editor.getValue() + 'G0' ; // dummy trailing command , theres  abug that excludes the last one , so just add it ahead of time  :D
+   var buffer= '' 
     var prevChar = '\n'
     var prevSpace = 0 
     var prevSpace2 = 0
-    var lasorOn = false  
-    var currentLine = 0 
-    var tempcurrentLine = 0
-    var LastPower = 0 
-    var buffer= '' 
-
-    for (var i = 0; i < textData.length; i++) 
+   var currentLine = 0 
+   var tempcurrentLine = 0
+   commandList = []
+   console.log('textData.length' + textData.length)
+   for (var i = 0; i < textData.length; i++) 
     {
 
         var Char = textData[i] 
@@ -187,8 +219,18 @@ function generateSVG()
             // console.log('adding at ' +i)
             
             // var Raw = textData.substr(prevSpace2   , prevSpace - prevSpace2)
+
             var Split = buffer.substr(0,buffer.length -1).split(' ')
-            commandList.push( { Raw:buffer , Split:Split , LineNumer:currentLine , Charnum : i } )
+            var template = buffer ; 
+            for (var j = 0; j < Split.length; j++) {
+                // console.log(Split[j])
+                template = template.replace(Split[j] , 'template' + j )
+            }
+
+
+            commandList.push( { Raw:buffer , Split:Split , LineNumer:currentLine , Charnum : i , Template:template } )
+
+
             prevSpace2 = prevSpace 
             prevSpace = i 
             buffer = '' ;
@@ -209,6 +251,22 @@ function generateSVG()
 
         prevChar = textData[i]
     }
+}
+
+function generateSVG()
+{
+
+        var elements = document.getElementById('elements')
+    elements.innerHTML = '' ; 
+    elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />') 
+
+    // console.log(textData)
+    
+
+    var lasorOn = false  
+    var LastPower = 0 
+
+ 
     // console.log(commandList);
 
     var LastPos = {x:0, y:0 , z:0 , i:0 , j:0 }
@@ -267,19 +325,14 @@ function generateSVG()
                 var linenumber = commandList[i].LineNumer
                 var radius = Math.sqrt(NewPos.i*NewPos.i  + NewPos.j*NewPos.j)
                 var linesvg = `<path  onclick=onclickSVGElement(this,${linenumber}) d="M ${LastPos.x * 5 + 50} ${LastPos.y * 5 + 50} A ${radius * 5 } ${radius * 5 } ${0} ${0} ${clockwise}  ${NewPos.x * 5 + 50} ${NewPos.y * 5 + 50} " style="stroke:${col};stroke-width:1;fill:rgba(255,255,255,0)" />`
-                // var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:1" />`
-                //stroke-opacity:${Opacity}"
-                // console.log(linesvg)
+
                 var elements = document.getElementById('elements')
                 elements.insertAdjacentHTML('beforeend' ,linesvg) ; 
                 commandList[i]['svgElement']  = elements.lastChild
 
-                // console.log(LastPos)
-                // console.log(NewPos)
                 LastPos.x = NewPos.x
                 LastPos.y = NewPos.y
                 LastPos.z = NewPos.z
-                // LastPos = NewPos;
 
         }       
         if( commandList[i].Split[0] == 'G0' || commandList[i].Split[0] == 'G1' )
@@ -351,12 +404,11 @@ function generateSVG()
             }
     
             var elements = document.getElementById('elements')
-            // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
             elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='1' stroke='blue' stroke-width='1.5' fill='{laserOn}' />`) ; 
+            commandList[i]['svgElement']  = elements.lastChild
         }
         //origin
         var elements = document.getElementById('elements')
-            // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#20208002;stroke:#70707000;stroke-width:0.5;opacity:1" />'
             elements.insertAdjacentHTML('beforeend' , `<circle cx='50' cy='50' r='3' stroke='green' stroke-width='3' fill='green' />`)
     }
     console.log(commandList)
@@ -406,37 +458,76 @@ function setMaxPowah(newMaxPowah)
 }
 displayMaxPowah();
 
-    var elements = document.getElementById('elements')
-    elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')
-
+    // var elements = document.getElementById('elements')
+    // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')
+textToCommandList()
 generateSVG() ; 
 
 
 function refreshsvg()
 {
-    var elements = document.getElementById('elements')
-    elements.innerHTML = '' ; 
-    elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')    
+   
+    textToCommandList()
     generateSVG() ; 
 
 }
 function onclickSVGElement(Element , LineNumber)
 {
-    console.log('onclickSVGElement')
-    // console.log(editor.session)
-    const prevMarkers = editor.session.getMarkers();
-    if (prevMarkers) {
-        const prevMarkersArr = Object.keys(prevMarkers);
-        for (let item of prevMarkersArr) {
-            editor.session.removeMarker(prevMarkers[item].id);
-      }
+    // console.log('onclickSVGElement')
+    // // console.log(editor.session)
+    // const prevMarkers = editor.session.getMarkers();
+    // if (prevMarkers) {
+    //     const prevMarkersArr = Object.keys(prevMarkers);
+    //     for (let item of prevMarkersArr) {
+    //         editor.session.removeMarker(prevMarkers[item].id);
+    //   }
+    // }
+
+    // if (LineNumber > 0 )
+    // {
+    //     var Range = ace.require('ace/range').Range;
+    //     editor.session.addMarker(new Range(LineNumber, 0, LineNumber, 1), "myMarker", "fullLine");
+    // }
+}
+
+function moveselected(dir , amount) 
+{
+    console.log(dir)
+    var coord 
+    if(dir == 'up') {
+        coord = 'Y'
+        amount = -1*amount
+    }
+    if(dir == 'down') {
+        coord = 'Y'
+    }
+    if(dir == 'right') {
+        coord = 'X'
+    }
+    if(dir == 'left') {
+        coord = 'X'
+        amount = -1*amount
     }
 
-    if (LineNumber > 0 )
-    {
-        var Range = ace.require('ace/range').Range;
-        editor.session.addMarker(new Range(LineNumber, 0, LineNumber, 1), "myMarker", "fullLine");
+    // moveselected('up' , 25)
+    for (var k =  0 ; k < selectedList.length ; k++) {
+        i = selectedList[k]
+        console.log(commandList[i])
+        for (var j = 1; j < commandList[i].Split.length; j++) {
+            console.log(commandList[i].Split[j][0])
+            if(commandList[i].Split[j][0] == coord)
+            {
+                console.log(Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+amount)
+                var newnumber = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+amount
+                newnumber = Math.round(newnumber*1000)/1000
+                commandList[i].Split[j] = coord + newnumber.toString(); 
+                console.log( coord + newnumber.toString())
+            }
+        }
+        //commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
     }
+    CommandListTotext()
+    generateSVG()
 }
 scale = 1 
 
@@ -508,11 +599,52 @@ svgy.addEventListener('mouseup', (e) => {
     // console.log(e.clientX +',' + e.clientY);
 
     var elements = document.getElementById('elements')
+
+    var boundings = boundingbox.getBBox();
+
     elements.removeChild(boundingbox);
     boundingbox = false
 
-            
-    // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='green' stroke-width='1.5' fill='{laserOn}' />`) ; 
+    // console.log("commandList " )
+    //  console.log(commandList)
+    var listofselectedsvg = []
+    for (const child of elements.children) {
+
+        var childbox = child.getBBox()
+        if( boundings.x < childbox.x &&
+            boundings.y < childbox.y &&
+            boundings.x + boundings.width > childbox.x  + childbox.width &&
+            boundings.y + boundings.height > childbox.y  + childbox.height)
+        {
+
+            listofselectedsvg.push(child)
+            // console.log(child.getBBox());
+        }
+    }   
+    // console.log(listofselectedsvg)
+    editor.getSelection().toSingleRange();
+    editor.getSelection().clearSelection();
+    selectedList = []
+    for (var i = 0; i < commandList.length; i++) {
+    
+        var svgElement = commandList[i].svgElement
+        if(svgElement != undefined)
+        {
+
+            // console.log(svgElement.outerHTML )
+            for ( child of listofselectedsvg) {
+                if(child.outerHTML == svgElement.outerHTML)
+                {
+                    selectedList.push(i); 
+                    editor.getSelection().addRange(new Range(commandList[i].LineNumer, 0, commandList[i].LineNumer,  commandList[i].Raw.length ));
+                }
+                
+            }
+        }
+    }
+    console.log(selectedList)
+
+        // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='green' stroke-width='1.5' fill='{laserOn}' />`) ; 
 });
 
 svgy.addEventListener('wheel', (e) => {
