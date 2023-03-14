@@ -162,6 +162,7 @@ function setMaxPowahPressed()
 
 var commandList = []
 var selectedList = []
+var skipNexttestToCommandList = false 
 
 
 
@@ -172,26 +173,29 @@ function CommandListTotext()
     var total = '' 
     for (var i = 0; i < commandList.length; i++) {
         var newRaw = commandList[i].Template
-        console.log(commandList[i].Raw)
+        // console.log(commandList[i].Raw)
         for (var j = commandList[i].Split.length - 1; j >= 0; j--) {
-            // commandList[i].Split[j]
-        // }
-        // for (var j = 0; j < commandList[i].Split.length; j++) {
-            console.log('/' + j + '/')
             newRaw = newRaw.replace( 'template' + j, commandList[i].Split[j])
-            // console.log( commandList[i].Split[j])
         }
         commandList[i].Raw = newRaw
         total += commandList[i].Raw 
     }
-
+    skipNexttestToCommandList = true 
       editor.setValue(total)
-      // generateSVG()
+      generateSVG()
 }
-
 
 function textToCommandList()
 {
+
+    if(skipNexttestToCommandList == true )
+    {
+        // skipNexttestToCommandList = false
+        console.log('return')
+        return 
+    }
+    console.log('no return')
+
    var textData = editor.getValue() + 'G0' ; // dummy trailing command , theres  abug that excludes the last one , so just add it ahead of time  :D
    var buffer= '' 
     var prevChar = '\n'
@@ -260,21 +264,14 @@ function generateSVG()
     elements.innerHTML = '' ; 
     elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />') 
 
-    // console.log(textData)
-    
-
     var lasorOn = false  
     var LastPower = 0 
-
- 
-    // console.log(commandList);
 
     var LastPos = {x:0, y:0 , z:0 , i:0 , j:0 }
     var NewPos =  {x:0, y:0 , z:0 , i:0 , j:0 }
 
             
     for (var i = 0; i < commandList.length; i++) {
-
 
         if( commandList[i].Split[0] == 'G2' || commandList[i].Split[0] == 'G3'  )
         {
@@ -314,7 +311,7 @@ function generateSVG()
                 Opacity =  LastPower
                 // col = `rgba(0,255,0,${Opacity})`
                 col = `rgba(255,0,0,${Opacity})`
-                console.log(col)
+                // console.log(col)
             }else
             {
                 col = `rgba(0,0,0,0.2)`
@@ -368,10 +365,16 @@ function generateSVG()
             {
                 Opacity =  LastPower
                 col = `rgba(255,0,0,${Opacity})`
-                console.log(col)
+                // console.log(col)
             }else
             {
                 col = `rgba(0,0,0,0.2)`
+            }
+
+            if(commandList[i].selected == true)
+            {
+                col = `rgba(0,0,255,0.8)`
+                // console.log('selected')
             }
 
                 var linenumber = commandList[i].LineNumer
@@ -512,16 +515,16 @@ function moveselected(dir , amount)
     // moveselected('up' , 25)
     for (var k =  0 ; k < selectedList.length ; k++) {
         i = selectedList[k]
-        console.log(commandList[i])
+        // console.log(commandList[i])
         for (var j = 1; j < commandList[i].Split.length; j++) {
-            console.log(commandList[i].Split[j][0])
+            // console.log(commandList[i].Split[j][0])
             if(commandList[i].Split[j][0] == coord)
             {
-                console.log(Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+amount)
+                // console.log(Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+amount)
                 var newnumber = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+amount
                 newnumber = Math.round(newnumber*1000)/1000
                 commandList[i].Split[j] = coord + newnumber.toString(); 
-                console.log( coord + newnumber.toString())
+                // console.log( coord + newnumber.toString())
             }
         }
         //commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
@@ -625,8 +628,9 @@ svgy.addEventListener('mouseup', (e) => {
     editor.getSelection().toSingleRange();
     editor.getSelection().clearSelection();
     selectedList = []
+    var firsti = -1 
     for (var i = 0; i < commandList.length; i++) {
-    
+        commandList[i].selected = false
         var svgElement = commandList[i].svgElement
         if(svgElement != undefined)
         {
@@ -635,6 +639,14 @@ svgy.addEventListener('mouseup', (e) => {
             for ( child of listofselectedsvg) {
                 if(child.outerHTML == svgElement.outerHTML)
                 {
+                    if(firsti == -1 && i > 0  )
+                    {
+                        firsti  = i 
+                        selectedList.push(i-1);
+                        editor.getSelection().addRange(new Range(commandList[i-1].LineNumer, 0, commandList[i-1].LineNumer,  commandList[i-1].Raw.length ));
+                    }
+
+                    commandList[i].selected = true
                     selectedList.push(i); 
                     editor.getSelection().addRange(new Range(commandList[i].LineNumer, 0, commandList[i].LineNumer,  commandList[i].Raw.length ));
                 }
@@ -642,8 +654,9 @@ svgy.addEventListener('mouseup', (e) => {
             }
         }
     }
+    console.log(commandList[firsti-1])
     console.log(selectedList)
-
+    generateSVG()
         // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='green' stroke-width='1.5' fill='{laserOn}' />`) ; 
 });
 
