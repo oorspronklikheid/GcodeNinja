@@ -183,6 +183,7 @@ function CommandListTotext()
     skipNexttestToCommandList = true 
       editor.setValue(total)
       generateSVG()
+    skipNexttestToCommandList = false 
 }
 
 function textToCommandList()
@@ -315,6 +316,12 @@ function generateSVG()
             }else
             {
                 col = `rgba(0,0,0,0.2)`
+            }
+
+            if(commandList[i].selected == true)
+            {
+                col = `rgba(0,0,255,0.8)`
+                // console.log('selected')
             }
                 var clockwise = 1 
                 if(commandList[i].Split[0] == 'G2')
