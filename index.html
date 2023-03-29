@@ -8,7 +8,7 @@
         top: 120px;
         right: -50%;
         bottom: 0;
-        left: 50%;
+        left: 70%;
     }
     .myMarker {
   position:absolute;
@@ -31,7 +31,7 @@
 </div>
 
     
-    <div style="width:50%;height:70%" id="editor">M28
+    <div style="width:30%;height:70%" id="editor">M28
 M28
 G0 X0 Y0 F10000 S1.0
 M5 M9
@@ -55,11 +55,13 @@ M2</div>
 
 <!-- </div> -->
 
-<div style="width:50%;height:70%">
+<div style="width:70%;height:70%">
     <svg id='svgy' width='98%' height='100%'>
+        <rect x="0" y="0" rx="5" ry="5" width=100% height=100% style="fill:#7020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />
         <g id='gscale' transform="scale(1)">
             <!-- <g transform="scale(1.25)"> -->
                 <g id=elements></g>
+                <g id=grid></g>
             <!-- </g> -->
         </g>
     </svg>
@@ -69,6 +71,7 @@ M2</div>
     <button onclick="moveselected('up' , 5)">/\</button>
     <button onclick="moveselected('down' , 5)">\/</button>
     <button onclick="moveselected('right' , 5)">></button><br>
+    <button onclick="splitline()">SplitLine</button><br>
 
     <button onclick="downloadPRessed()">Download GCode</button><br>
     <button onclick="refreshsvg()">Refresh SVG View</button><br>
@@ -82,7 +85,8 @@ M2</div>
             warning on missing laser shut off<br>
             Visualise cutting direction <br>
             minimize gcode ie remove redundant spindle/coolant command , remove parameters that does not change from previous<br>
-            ui move of gcode
+            ui move of gcode<br>
+            add split command<br>
             <s> implement uploading</s><br>
             <s>Implicit parameters support , ie G0 X100</s><br>
             <s>G2/G3 Support</s><br>
@@ -210,20 +214,13 @@ function textToCommandList()
     {
 
         var Char = textData[i] 
-        // if(i<20 && Char != '\n')
-            // console.log(Char)
         if(Char == '\n')
         {
-            // console.log('\\n')
             tempcurrentLine ++ ;
-            // currentLine ++ ;
         }
 
         if((Char == 'M' || Char == 'G')  )
         {
-            // console.log('adding at ' +i)
-            
-            // var Raw = textData.substr(prevSpace2   , prevSpace - prevSpace2)
 
             var Split = buffer.substr(0,buffer.length -1).split(' ')
             var template = buffer ; 
@@ -263,7 +260,7 @@ function generateSVG()
 
         var elements = document.getElementById('elements')
     elements.innerHTML = '' ; 
-    elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />') 
+    // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#7020F050;stroke:#70707000;stroke-width:0.5;opacity:1" />') 
 
     var lasorOn = false  
     var LastPower = 0 
@@ -473,7 +470,19 @@ displayMaxPowah();
 textToCommandList()
 generateSVG() ; 
 
+function drawGrid() 
+{
 
+    let gridsvg = '' 
+    for (var i = -40; i < 40; i++) {
+        for (var j = -40; j < 40; j++) {
+        gridsvg += `<circle onclick=onclickSVGElement(this,-1) cx='${i*50 }' cy='${j*50}' r='0.4' stroke='grey' stroke-width='1.5' fill='grey' />`         
+        }
+    }
+    let grid  = document.getElementById('grid')
+    grid.insertAdjacentHTML('beforeend' , gridsvg) 
+}
+drawGrid() 
 function refreshsvg()
 {
    
@@ -483,7 +492,7 @@ function refreshsvg()
 }
 function onclickSVGElement(Element , LineNumber)
 {
-    // console.log('onclickSVGElement')
+    console.log('onclickSVGElement')
     // // console.log(editor.session)
     // const prevMarkers = editor.session.getMarkers();
     // if (prevMarkers) {
@@ -498,6 +507,17 @@ function onclickSVGElement(Element , LineNumber)
     //     var Range = ace.require('ace/range').Range;
     //     editor.session.addMarker(new Range(LineNumber, 0, LineNumber, 1), "myMarker", "fullLine");
     // }
+}
+function splitline() {
+    selectedList.length
+    if(selectedList.length != 2)
+        return ; 
+    // console.log(selectedList)
+    console.log(commandList[selectedList[0]])
+    console.log(commandList[selectedList[1]])
+
+
+    // for (var k =  0 ; k < selectedList.length ; k++) {
 }
 
 function moveselected(dir , amount) 
@@ -560,7 +580,7 @@ svgy.addEventListener('mousedown', (e) => {
             
     if(boundingbox == false){
 
-    elements.insertAdjacentHTML('beforeend' , `<rect x="${cursorpt.x/scale }" y="${cursorpt.y/scale }" width="0" height="0" style="fill:rgba(0,0,255,0.1);stroke-width:1;stroke:rgb(0,0,0)" />`) ; 
+    elements.insertAdjacentHTML('beforeend' , `<rect x="${cursorpt.x/scale }" y="${cursorpt.y/scale }" width="0" height="0" style="fill:rgba(0,0,255,0.1);stroke-width:0.3;stroke:rgb(0,0,0)" />`) ; 
         boundingbox = elements.lastChild;
         mousestartpos.x =  cursorpt.x/scale
         mousestartpos.y =  cursorpt.y/scale
@@ -611,7 +631,7 @@ svgy.addEventListener('mouseup', (e) => {
     var elements = document.getElementById('elements')
 
     var boundings = boundingbox.getBBox();
-
+    console.log(boundings)
     elements.removeChild(boundingbox);
     boundingbox = false
 
@@ -661,8 +681,8 @@ svgy.addEventListener('mouseup', (e) => {
             }
         }
     }
-    console.log(commandList[firsti-1])
-    console.log(selectedList)
+    // console.log(commandList[firsti-1])
+    // console.log(selectedList)
     generateSVG()
         // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='green' stroke-width='1.5' fill='{laserOn}' />`) ; 
 });
