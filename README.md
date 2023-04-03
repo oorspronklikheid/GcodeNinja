@@ -13,6 +13,7 @@ Utility to direclty edit Gcode.
 + Finger joints?( i have no idea how to even)
 + Select entire cut segment.
 + Absolute/Relative measurements
++ cut start counter in order to determine cuttin sequence
 + ~~Grid~~
 
 
