@@ -6,6 +6,8 @@ Utility to direclty edit Gcode.
 
 
 # TODO : 
++ Ctrl C +V Implementation
++ Ctrl Z Implementation
 + Make export to svg button.
 + Set cut segment length
 + Split line segment
