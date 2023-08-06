@@ -56,27 +56,46 @@ M2</div>
 <!-- </div> -->
 
 <div style="width:70%;height:70%">
-    <svg id='svgy' width='98%' height='100%'>
+    <svg  tabindex="0" id='svgy' width='98%' height='100%'>
+
         <rect x="0" y="0" rx="5" ry="5" width=100% height=100% style="fill:#7020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />
-        <g id='gscale' transform="scale(1)">
+        <g id='gscale' transform="scale(1) translate(100 100)">
             <!-- <g transform="scale(1.25)"> -->
-                <g id=elements></g>
                 <g id=grid></g>
+                <g id=elements></g>
             <!-- </g> -->
         </g>
+        <rect x="2" y="2" rx="5" ry="5" width=99% height=50px style="fill:#F0FFF0FF;stroke:#202020FF;stroke-width:2;opacity:1" />
     </svg>
-    <input value='0.9' id='maxPowerInput' ><button onclick="setMaxPowahPressed()">Set max powah</button>Scales all S params relatively to the maximum power in the program.<br><br>
+    <input value='0.9' id='maxPowerInput' ><button onclick="setMaxPowahPressed()">Set max powah</button>Scales all S params relatively to the maximum power.<br>
 
-    <button onclick="moveselected('left' , 5)"><</button>
-    <button onclick="moveselected('up' , 5)">/\</button>
-    <button onclick="moveselected('down' , 5)">\/</button>
-    <button onclick="moveselected('right' , 5)">></button><br>
-    <button onclick="splitline()">SplitLine</button><br>
+    move selection 
+    <button onclick="moveselected(-5 , 0)"><</button>
+    <button onclick="moveselected(0 , -5)">/\</button>
+    <button onclick="moveselected(0 , 5)">\/</button>
+    <button onclick="moveselected(5 ,0)">></button><br>    
 
-    <button onclick="downloadPRessed()">Download GCode</button><br>
-    <button onclick="refreshsvg()">Refresh SVG View</button><br>
-    <button onclick="exportURL()">Save to URL</button><br>
-    <button onclick="saveToServer()">Save to Server</button><br>
+    rotate selection 
+    <button onclick="rotateselected(45 , 0 ,0)"><<</button>
+    <button onclick="rotateselected(5 , 0, 0)"><</button>
+    <button onclick="rotateselected(-5 , 0, 0)">></button>
+    <button onclick="rotateselected(-45 , 0, 0)">>></button><br>    
+
+    moev view <button onclick="moveseview(-20,0)"><</button>
+    <button onclick="moveseview(0,-20)">/\</button>
+    <button onclick="moveseview(0,20)">\/</button>
+    <button onclick="moveseview(20,0)">></button><br>
+    <button onclick="splitline()">SplitLine</button>
+
+    <button onclick="downloadPRessed()">Download GCode</button>
+    <button onclick="refreshsvg()">Refresh SVG View</button>
+    <button onclick="exportURL()">Save to URL</button>  
+    <button onclick="saveToServer()">Save to Server</button>
+    <button onclick="shrink()">Shrink</button><br>
+    <input  type="checkbox" id='showM' name="showM" onchange="updateDsiplaySettings()" ><label for="showM"> Show M3-M9 toggles</label>
+    <input  type="checkbox" id='showG' name="showG" onchange="updateDsiplaySettings()" ><label for="showG"> Show Gcode points</label>
+    <input type="number" id="laserwidth" onchange="updateDsiplaySettings()" value='0.1' min=0 max=10 step=0.1>    
+
     <details><summary>TODO</summary>
             Panning of svg<br>
             Grid<br>
@@ -87,6 +106,8 @@ M2</div>
             minimize gcode ie remove redundant spindle/coolant command , remove parameters that does not change from previous<br>
             ui move of gcode<br>
             add split command<br>
+            add microjoints<br>
+            <s>add rotation</s><br>
             <s> implement uploading</s><br>
             <s>Implicit parameters support , ie G0 X100</s><br>
             <s>G2/G3 Support</s><br>
@@ -96,6 +117,9 @@ M2</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.13.2/ace.js" type="text/javascript" charset="utf-8"></script>
 
 <script>
+
+    document.documentElement.style.overflow = 'hidden';  // firefox, chrome
+
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/monokai");
     editor.session.setMode("ace/mode/gcode");
@@ -129,20 +153,20 @@ function getMaxPOwerFromGcode() {
  
   var maxPowah = 0 ; 
   var textData = editor.getValue().split('\n'); 
-  console.log(textData) ;
+  // console.log(textData) ;
 
   for (var i = 0; i < textData.length; i++) {
     let position = textData[i].search("S");
     if(position >  -1 )
     {
-        console.log(position); 
-        console.log(textData[i]) ;
+        // console.log(position); 
+        // console.log(textData[i]) ;
         var tempstr = textData[i].substring( position + 1 ) // +1 to exclude the S automatically
-        console.log(tempstr) ;
+        // console.log(tempstr) ;
         if(tempstr.search(" ") > 0 ) // remove extra gcodes after S param
         {
             tempstr = tempstr.substring(0 , tempstr.search(" "))
-            console.log(tempstr);
+            // console.log(tempstr);
         }
         if(maxPowah < tempstr)
         {
@@ -154,6 +178,18 @@ function getMaxPOwerFromGcode() {
   } 
   return maxPowah  
 }
+
+let DsiplaySettings = {MCommand:true , GSpot:true , laserwidth:0.1 } 
+function updateDsiplaySettings()
+{
+    DsiplaySettings.MCommand = document.getElementById("showM").checked
+    DsiplaySettings.GSpot = document.getElementById("showG").checked
+    DsiplaySettings.laserwidth = document.getElementById("laserwidth").value
+    generateSVG()
+}
+// updateDsiplaySettings()
+
+
 function displayMaxPowah()
 {
     // document.getElementById('maxPowerInput').value = getMaxPOwerFromGcode();
@@ -257,6 +293,8 @@ function textToCommandList()
 
 function generateSVG()
 {
+    var maxPowah = getMaxPOwerFromGcode()
+    console.log(maxPowah)
 
         var elements = document.getElementById('elements')
     elements.innerHTML = '' ; 
@@ -306,10 +344,8 @@ function generateSVG()
             var Opacity = 100 
             if(lasorOn)
             {
-                Opacity =  LastPower
-                // col = `rgba(0,255,0,${Opacity})`
+                Opacity =  1 //LastPower/maxPowah
                 col = `rgba(255,0,0,${Opacity})`
-                // console.log(col)
             }else
             {
                 col = `rgba(0,0,0,0.2)`
@@ -318,18 +354,28 @@ function generateSVG()
             if(commandList[i].selected == true)
             {
                 col = `rgba(0,0,255,0.8)`
-                // console.log('selected')
             }
                 var clockwise = 1 
                 if(commandList[i].Split[0] == 'G2')
                     clockwise = 0 
                 var linenumber = commandList[i].LineNumer
                 var radius = Math.sqrt(NewPos.i*NewPos.i  + NewPos.j*NewPos.j)
-                var linesvg = `<path  onclick=onclickSVGElement(this,${linenumber}) d="M ${LastPos.x * 5 + 50} ${LastPos.y * 5 + 50} A ${radius * 5 } ${radius * 5 } ${0} ${0} ${clockwise}  ${NewPos.x * 5 + 50} ${NewPos.y * 5 + 50} " style="stroke:${col};stroke-width:1;fill:rgba(255,255,255,0)" />`
+                var linesvg = `<path  onclick=onclickSVGElement(this,${linenumber}) d="M ${LastPos.x * 5 } ${LastPos.y * 5 } A ${radius * 5 } ${radius * 5 } ${0} ${0} ${clockwise}  ${NewPos.x * 5 } ${NewPos.y * 5 } " style="stroke:${col};stroke-width:${DsiplaySettings.laserwidth}mm;fill:rgba(255,255,255,0)" />`
 
                 var elements = document.getElementById('elements')
                 elements.insertAdjacentHTML('beforeend' ,linesvg) ; 
                 commandList[i]['svgElement']  = elements.lastChild
+
+                // let DsiplaySettings = {MCommand:true , GSpot:true } 
+
+                if(DsiplaySettings.GSpot)
+                {
+                    var circsvg = `<circle onclick=onclickSVGElement(this,${linenumber}) cx='${NewPos.x * 5}' cy='${NewPos.y* 5 }' r='1' stroke='black' stroke-width='0' fill='black' />`
+                    elements.insertAdjacentHTML('beforeend' ,circsvg) ; 
+                    commandList[i]['svgDot']  = elements.lastChild
+                }
+
+
 
                 LastPos.x = NewPos.x
                 LastPos.y = NewPos.y
@@ -367,7 +413,7 @@ function generateSVG()
             var Opacity = 100 
             if(lasorOn)
             {
-                Opacity =  LastPower
+                Opacity =  LastPower/maxPowah
                 col = `rgba(255,0,0,${Opacity})`
                 // console.log(col)
             }else
@@ -378,23 +424,33 @@ function generateSVG()
             if(commandList[i].selected == true)
             {
                 col = `rgba(0,0,255,0.8)`
-                // console.log('selected')
             }
+            
+                console.log(DsiplaySettings.laserwidth)
+
 
                 var linenumber = commandList[i].LineNumer
-                var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 + 50}" y1="${LastPos.y * 5 + 50}" x2="${NewPos.x * 5 + 50}" y2="${NewPos.y * 5 + 50}" style="stroke:${col};stroke-width:1" />`
+                var linesvg = `<line onclick=onclickSVGElement(this,${linenumber}) x1="${LastPos.x * 5 }" y1="${LastPos.y * 5 }" x2="${NewPos.x * 5 }" y2="${NewPos.y * 5 }" style="stroke:${col};stroke-width:${DsiplaySettings.laserwidth}mm" />`
                 //stroke-opacity:${Opacity}"
-                // console.log(linesvg)
+                
+
                 var elements = document.getElementById('elements')
                 elements.insertAdjacentHTML('beforeend' ,linesvg) ; 
                 commandList[i]['svgElement']  = elements.lastChild
+                
 
-                // console.log(LastPos)
-                // console.log(NewPos)
+                if(DsiplaySettings.GSpot)
+                {
+                    var circsvg = `<circle onclick=onclickSVGElement(this,${linenumber}) cx='${NewPos.x * 5}' cy='${NewPos.y* 5 }' r='1' stroke='black' stroke-width='0' fill='black' />`
+                    elements.insertAdjacentHTML('beforeend' ,circsvg) ; 
+                    commandList[i]['svgDot']  = elements.lastChild
+                }
+
+                
                 LastPos.x = NewPos.x
                 LastPos.y = NewPos.y
                 LastPos.z = NewPos.z
-                // LastPos = NewPos;
+                
             
         }
         if( commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M7'  || commandList[i].Split[0] == 'M9' )
@@ -402,23 +458,21 @@ function generateSVG()
             if(commandList[i].Split[0] == 'M3' || commandList[i].Split[0] == 'M7')
             {
                 lasorOn = true
-
             }
             if(commandList[i].Split[0] == 'M5' || commandList[i].Split[0] == 'M9')
             {
                 lasorOn = false
-
             }
-    
-            var elements = document.getElementById('elements')
-            elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5 +50   }' cy='${LastPos.y* 5 + 50 }' r='1' stroke='blue' stroke-width='1.5' fill='{laserOn}' />`) ; 
-            commandList[i]['svgElement']  = elements.lastChild
+        
+            if(DsiplaySettings.MCommand )
+            {
+                var elements = document.getElementById('elements')
+                elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${LastPos.x * 5    }' cy='${LastPos.y* 5  }' r='1' stroke='blue' stroke-width='1' fill='{laserOn}' />`) ; 
+                commandList[i]['svgElement']  = elements.lastChild
+            }
         }
-        //origin
-        var elements = document.getElementById('elements')
-            elements.insertAdjacentHTML('beforeend' , `<circle cx='50' cy='50' r='3' stroke='green' stroke-width='3' fill='green' />`)
     }
-    console.log(commandList)
+    // console.log(commandList)
 
 }
 
@@ -464,23 +518,29 @@ function setMaxPowah(newMaxPowah)
   // return maxPowah  
 }
 displayMaxPowah();
-
-    // var elements = document.getElementById('elements')
-    // elements.insertAdjacentHTML('beforeend' , '<rect x="10" y="10" rx="15" ry="15" width=99% height=99% style="fill:#2020F010;stroke:#70707000;stroke-width:0.5;opacity:1" />')
 textToCommandList()
 generateSVG() ; 
 
 function drawGrid() 
 {
-
     let gridsvg = '' 
+    let r = 0.3
     for (var i = -40; i < 40; i++) {
         for (var j = -40; j < 40; j++) {
-        gridsvg += `<circle onclick=onclickSVGElement(this,-1) cx='${i*50 }' cy='${j*50}' r='0.4' stroke='grey' stroke-width='1.5' fill='grey' />`         
+            
+            r = 0.075
+            if(i%5 == 0 && j%5==0 )
+                r = 0.2
+        gridsvg += `<circle onclick=onclickSVGElement(this,-1) cx='${i*10 }' cy='${j*10}' r='${r}' stroke='black' stroke-width='0.5' fill='black' />`         
         }
     }
     let grid  = document.getElementById('grid')
     grid.insertAdjacentHTML('beforeend' , gridsvg) 
+
+    //origin
+    grid.insertAdjacentHTML('beforeend' , `<circle cx='0' cy='0' r='3' stroke='green' stroke-width='3' fill='green' />`)
+
+
 }
 drawGrid() 
 function refreshsvg()
@@ -508,50 +568,180 @@ function onclickSVGElement(Element , LineNumber)
     //     editor.session.addMarker(new Range(LineNumber, 0, LineNumber, 1), "myMarker", "fullLine");
     // }
 }
+function shrink() 
+{
+    
+}
 function splitline() {
     selectedList.length
     if(selectedList.length != 2)
         return ; 
     // console.log(selectedList)
-    console.log(commandList[selectedList[0]])
-    console.log(commandList[selectedList[1]])
+    // console.log(commandList[selectedList[0]])
+    // console.log(commandList[selectedList[1]])
+    let start = dumbarraytosmartObject(commandList[selectedList[0]].Split)
+    let end = dumbarraytosmartObject(commandList[selectedList[1]].Split)
 
+    let newx = (start.X + end.X)/2
+    let newy = (start.Y + end.Y)/2
+
+
+    commandList[selectedList[0]].Template +=  `G0 X${newx} Y${newy}\n`
+
+
+    CommandListTotext()
+    textToCommandList()
+    generateSVG()
 
     // for (var k =  0 ; k < selectedList.length ; k++) {
 }
 
-function moveselected(dir , amount) 
+function dumbarraytosmartObject(arr)
 {
-    console.log(dir)
-    var coord 
-    if(dir == 'up') {
-        coord = 'Y'
-        amount = -1*amount
-    }
-    if(dir == 'down') {
-        coord = 'Y'
-    }
-    if(dir == 'right') {
-        coord = 'X'
-    }
-    if(dir == 'left') {
-        coord = 'X'
-        amount = -1*amount
-    }
+    console.log("arr" , arr)
+    let obj = {}
 
-    // moveselected('up' , 25)
+     for (var i = 0; i < arr.length; i++) {
+        console.log(i , arr[i][0])
+        if(arr[i][0] == 'X')
+        {
+            var num = Number(arr[i].substring(1,arr[i].length ))
+            obj.X = num
+
+        }
+        if(arr[i][0] == 'Y')
+        {
+            var num = Number(arr[i].substring(1,arr[i].length ))
+            obj.Y = num
+        }
+        if(arr[i][0] == 'Z')
+        {
+            var num = Number(arr[i].substring(1,arr[i].length ))
+            obj.Z = num
+        }
+        if(arr[i][0] == 'I')
+        {
+            var num = Number(arr[i].substring(1,arr[i].length ))
+            obj.I = num
+        }
+        if(arr[i][0] == 'J')
+        {
+            var num = Number(arr[i].substring(1,arr[i].length ))
+            obj.J = num
+        }
+        if(arr[i][0] == 'S')
+        {
+            var num = Number(arr[i].substring(1,arr[i].length ))
+            obj.S = num
+        }
+        if(arr[i][0] == 'G')
+        {
+            obj.G = arr[i]
+        }
+    }
+    console.log("obj" , obj)
+    return obj
+
+}
+
+//get bounding box pf selection
+function boundsselected() 
+{
+
+    let xmin =  100000 , ymin =  100000 
+    let xmax = -100000 , ymax = -100000 
     for (var k =  0 ; k < selectedList.length ; k++) {
         i = selectedList[k]
-        // console.log(commandList[i])
+        var xi=-1 , yi=-1 , x = 0 , y = 0 ; 
+
         for (var j = 1; j < commandList[i].Split.length; j++) {
-            // console.log(commandList[i].Split[j][0])
-            if(commandList[i].Split[j][0] == coord)
+            if(commandList[i].Split[j][0] == 'X')
             {
-                // console.log(Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+amount)
-                var newnumber = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+amount
+                var x = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))
+                if(x > xmax)
+                    xmax = x
+                if(x < xmin)
+                    xmin = x
+            }
+            if(commandList[i].Split[j][0] == 'Y')
+            {
+                var y = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))
+                if(y > ymax)
+                    ymax = y
+                if(y < ymin)
+                    ymin = y
+            }
+        }
+    }
+
+    return {xmax:xmax , xmin:xmin , ymax:ymax , ymin:ymin}
+}
+function rotateselected(deg , xorig , yorig) 
+{
+
+    console.log(commandList)
+
+    let bounds = boundsselected( )
+
+    for (var k =  0 ; k < selectedList.length ; k++) {
+        i = selectedList[k]
+        var xi=-1 , yi=-1 , x = 0 , y = 0 ; 
+
+        for (var j = 1; j < commandList[i].Split.length; j++) {
+            if(commandList[i].Split[j][0] == 'X')
+            {
+                xi = j 
+
+                var x = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))
+            }
+            if(commandList[i].Split[j][0] == 'Y')
+            {
+                yi = j 
+                var y = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))
+            }
+        }
+        if(xi > -1 && yi >-1 )
+        {
+            xorig = (bounds.xmax + bounds.xmin ) /2 
+            yorig = (bounds.ymax + bounds.ymin ) /2 
+            console.log(xorig,yorig )
+
+            let dx = x - xorig
+            let dy = y - yorig 
+            let len = (dx**2 + (dy)**2)**0.5
+            let a   = Math.atan2(dy,dx)
+            
+            a += deg*Math.PI/180.0
+
+            dx =  len * Math.cos(a)
+            dy =  len * Math.sin(a)
+            commandList[i].Split[xi] = 'X' + (dx + xorig); 
+            commandList[i].Split[yi] = 'Y' + (dy + yorig); 
+
+        }
+    }
+    CommandListTotext()
+    generateSVG()
+
+}
+
+function moveselected(xamount , yamount) 
+{
+
+    for (var k =  0 ; k < selectedList.length ; k++) {
+        i = selectedList[k]
+        for (var j = 1; j < commandList[i].Split.length; j++) {
+            if(commandList[i].Split[j][0] == 'X')
+            {
+                var newnumber = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+xamount
                 newnumber = Math.round(newnumber*1000)/1000
-                commandList[i].Split[j] = coord + newnumber.toString(); 
-                // console.log( coord + newnumber.toString())
+                commandList[i].Split[j] = 'X' + newnumber.toString(); 
+            }
+            if(commandList[i].Split[j][0] == 'Y')
+            {
+                var newnumber = Number(commandList[i].Split[j].substring(1,commandList[i].Split[j].length ))+yamount
+                newnumber = Math.round(newnumber*1000)/1000
+                commandList[i].Split[j] = 'Y' + newnumber.toString(); 
             }
         }
         //commandList[i].Split[j].substring(1,commandList[i].Split[j].length )
@@ -560,7 +750,19 @@ function moveselected(dir , amount)
     generateSVG()
 }
 scale = 1 
+xtranslate = 100 
+ytranslate = 100 
 
+function moveseview(x,y )
+{
+    xtranslate += x ;
+    ytranslate += y ;
+
+    gscale = document.getElementById('gscale')
+    gscale.setAttribute('transform',`scale(${scale}) translate(${xtranslate} , ${ytranslate})`);
+
+
+}
 var pt = svgy.createSVGPoint();  // Created once for document
 
 
@@ -573,24 +775,49 @@ svgy.addEventListener('mousedown', (e) => {
     pt.x = e.clientX;
     pt.y = e.clientY;
     var cursorpt = pt.matrixTransform(svgy.getScreenCTM().inverse());
-    // console.log("(" + cursorpt.x + ", " + cursorpt.y + ")");
-    // console.log(e.clientX +',' + e.clientY);
-
     var elements = document.getElementById('elements')
             
-    if(boundingbox == false){
+    if(boundingbox == false)
+    {
 
-    elements.insertAdjacentHTML('beforeend' , `<rect x="${cursorpt.x/scale }" y="${cursorpt.y/scale }" width="0" height="0" style="fill:rgba(0,0,255,0.1);stroke-width:0.3;stroke:rgb(0,0,0)" />`) ; 
+    elements.insertAdjacentHTML('beforeend' , `<rect x="${cursorpt.x/scale - xtranslate}" y="${cursorpt.y/scale - ytranslate}" width="0" height="0" style="fill:rgba(0,0,255,0.1);stroke-width:0.2;stroke:rgb(0,0,0)" />`) ; 
         boundingbox = elements.lastChild;
-        mousestartpos.x =  cursorpt.x/scale
-        mousestartpos.y =  cursorpt.y/scale
+        mousestartpos.x =  cursorpt.x/scale - xtranslate
+        mousestartpos.y =  cursorpt.y/scale - ytranslate
     }else{
-        mousestartpos.x =  cursorpt.x/scale
-        mousestartpos.y =  cursorpt.y/scale
-        boundingbox.setAttribute('x' ,  cursorpt.x/scale )  ;
-        boundingbox.setAttribute('y' ,  cursorpt.y/scale )  ;
+        mousestartpos.x =  cursorpt.x/scale - xtranslate
+        mousestartpos.y =  cursorpt.y/scale - ytranslate
+        boundingbox.setAttribute('x' ,  cursorpt.x/scale - xtranslate)  ;
+        boundingbox.setAttribute('y' ,  cursorpt.y/scale - ytranslate)  ;
     }
     
+});
+svgy.addEventListener('keydown', (e) => {
+
+    let xamount = 0
+    let yamount = 0
+
+    let amount = 1 ;
+
+    if( e.ctrlKey)
+        amount = 5 ; 
+    if( e.shiftKey)
+        amount = 50 ; 
+    console.log(e)
+    if(e.keyCode == 37 || e.keyCode == 65)
+        xamount  = -1 * amount 
+    if(e.keyCode == 38 || e.keyCode == 87)
+        yamount = -1 * amount 
+    if(e.keyCode == 39  || e.keyCode == 68)
+        xamount  = amount 
+    if(e.keyCode == 40 || e.keyCode == 83)
+        yamount = amount 
+
+    if(selectedList.length > 0 )
+        moveselected(xamount , yamount) ; 
+    else
+        moveseview(xamount , yamount) ; 
+
 });
 
 svgy.addEventListener('mousemove', (e) => {
@@ -607,12 +834,12 @@ svgy.addEventListener('mousemove', (e) => {
     // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='red' stroke-width='1.5' fill='{laserOn}' />`) ; 
         if(boundingbox != false)
         {
-        var tempx = Math.min(mousestartpos.x , cursorpt.x/scale) ; 
-        var tempy = Math.min(mousestartpos.y , cursorpt.y/scale) ; 
+        var tempx = Math.min(mousestartpos.x , cursorpt.x/scale - xtranslate) ; 
+        var tempy = Math.min(mousestartpos.y , cursorpt.y/scale - ytranslate) ; 
         boundingbox.setAttribute('x' ,  tempx)  ;
         boundingbox.setAttribute('y' ,  tempy)  ;
-        boundingbox.setAttribute('width' , Math.abs(mousestartpos.x -  cursorpt.x/scale ))  ;
-        boundingbox.setAttribute('height' ,Math.abs(mousestartpos.y -   cursorpt.y/scale ))  ;
+        boundingbox.setAttribute('width' , Math.abs(mousestartpos.x -  cursorpt.x/scale + xtranslate ))  ;
+        boundingbox.setAttribute('height' ,Math.abs(mousestartpos.y -   cursorpt.y/scale + ytranslate ))  ;
 
         }
 
@@ -635,8 +862,9 @@ svgy.addEventListener('mouseup', (e) => {
     elements.removeChild(boundingbox);
     boundingbox = false
 
-    // console.log("commandList " )
-    //  console.log(commandList)
+
+
+    //selection logic
     var listofselectedsvg = []
     for (const child of elements.children) {
 
@@ -648,10 +876,8 @@ svgy.addEventListener('mouseup', (e) => {
         {
 
             listofselectedsvg.push(child)
-            // console.log(child.getBBox());
         }
     }   
-    // console.log(listofselectedsvg)
     editor.getSelection().toSingleRange();
     editor.getSelection().clearSelection();
     selectedList = []
@@ -677,24 +903,22 @@ svgy.addEventListener('mouseup', (e) => {
                     selectedList.push(i); 
                     editor.getSelection().addRange(new Range(commandList[i].LineNumer, 0, commandList[i].LineNumer,  commandList[i].Raw.length ));
                 }
-                
             }
         }
     }
-    // console.log(commandList[firsti-1])
-    // console.log(selectedList)
+    //end of selection logic
     generateSVG()
-        // elements.insertAdjacentHTML('beforeend' , `<circle onclick=onclickSVGElement(this,-1) cx='${cursorpt.x/scale }' cy='${cursorpt.y/scale}' r='1' stroke='green' stroke-width='1.5' fill='{laserOn}' />`) ; 
 });
 
 svgy.addEventListener('wheel', (e) => {
 
+    // console.log(e) 
     gscale = document.getElementById('gscale')
     if(e.wheelDeltaY > 0 )
         scale = scale * (1.05)
     if(e.wheelDeltaY < 0 )
         scale = scale / (1.05)
-    gscale.setAttribute('transform',`scale(${scale})`);
+    gscale.setAttribute('transform',`scale(${scale}) translate(${xtranslate} , ${ytranslate})`);
 
 
   // lastKnownScrollPosition = window.scrollY;
