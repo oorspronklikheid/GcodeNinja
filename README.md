@@ -10,7 +10,7 @@ Utility to direclty edit Gcode.
 + Ctrl Z Implementation
 + Make export to svg button.
 + Set cut segment length
-+ Split line segment
++ ~~Split line segment~~
 + Round corners
 + Finger joints?( i have no idea how to even)
 + Select entire cut segment.
